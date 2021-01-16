@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/ico" href="/images/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>WhiteBoard</title>
+</head>
+<body class="board-body">
+    <button id="open-controls-btn" class="controlPanelBtns"><i class="fa fa-caret-left" aria-hidden="true"></i></button>
+    
+    <div class="right-control-panel">
+        <button id="close-controls-btn" class="controlPanelBtns"><i class="fa fa-times" aria-hidden="true"></i></button>
+        <h2 class="control-panel-headings">Invite Link:</h3>
+        <input type="text" id="link-input"><br>
+        <button id="copy-invite-link-btn"><i class="fa fa-clipboard" aria-hidden="true"></i>Copy Link</button>
+        <h2 class="control-panel-headings">Keyboard Shortcuts</h3>
+        <p class="control-btn-text"><span class="key-titles">Zoom:</span><img src="/images/scroll-img.png" alt="Mouse for pan" id="scroll-img"></p>
+        <p class="control-btn-text"><span class="key-titles">Pan:</span><span class="keyboard-keys">Ctrl</span><i class="fa fa-plus" aria-hidden="true"></i>
+<img src="/images/mouse-pan.png" alt="Mouse for pan" id="zoom-img"> </p>
+        <p class="control-btn-text"><span class="key-titles">Undo:</span><span class="keyboard-keys">Ctrl</span><i class="fa fa-plus" aria-hidden="true"></i>
+<span class="keyboard-keys">Z</span></p>
+        <p class="control-btn-text"><span class="key-titles">Redo:</span><span class="keyboard-keys">Ctrl</span><i class="fa fa-plus" aria-hidden="true"></i>
+<span class="keyboard-keys">Y</span></p>
+    </div>
+
+    <canvas id="canvas" easypz></canvas>
+
+    <div class="buttons-container">
+        <div id="000000" class="panel-btn">
+            <img src="/images/000000.png" alt="Black">
+            <span class="panel-btn-tags">Black</span>
+        </div>
+        <div id="ff0000" class="panel-btn">
+            <img src="/images/ff0000.png" alt="red">
+            <span class="panel-btn-tags">Red</span>
+        </div>
+        <div id="0127e9" class="panel-btn">
+            <img src="/images/0127e9.png" alt="Blue">
+            <span class="panel-btn-tags">Blue</span>
+        </div>
+        <div id="d500c3" class="panel-btn">
+            <img src="/images/d500c3.png" alt="Purple">
+            <span class="panel-btn-tags">Purple</span>
+        </div>
+        <div id="01e922" class="panel-btn">
+            <img src="/images/01e922.png" alt="Green">
+            <span class="panel-btn-tags">Green</span>
+        </div>
+        <div id="eraser" class="panel-btn">
+            <img src="/images/eraser.png" alt="Eraser">
+            <span class="panel-btn-tags">Eraser</span>
+        </div>
+    </div>
+    <div class="copied-to-clipboard hide-popup">Link Copied</div>
+    <script src="js/script.js"></script>
+    <script src="js/control-panel.js"></script>
+
+<%- include('../partials/footer.ejs'); %>
