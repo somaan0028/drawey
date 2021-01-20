@@ -4,16 +4,17 @@ window.addEventListener('load', () => {
     const panelBtns = document.querySelectorAll(".panel-btn");
     const ctx = canvas.getContext("2d");
 
+    // setting dimensions of the canvas
     var canvasHeight = 3000;
     var canvasWidth = 3000;
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    // var screenWidth = screen.availWidth;
-    // var screenHeight = screen.availHeight;
+    // storing screen widths
     var screenWidth = window.innerWidth;
     var screenHeight = window.innerHeight;
 
+    // zoom factor is 1.05 and initial zoom is 1 meaning no zoom
     var scaleFactor = 1.05;
     var totalScale = 1;
 
@@ -26,18 +27,22 @@ window.addEventListener('load', () => {
 
     //adjustCanvasDimnesions();
 
+    // stores the coordinated of the current drawing on the screen
     var drawingStorage = [];  //   [  [ [23,43], [32,56], [67,45] ], [ [],[],...,[] ], [], [], []     ]
+    
+    // stores the most current continuous drawing i.e. from mouse press to mouse lift
     var continuousDrawing = [];
 
+    // Used for undo functionality
     var redoStorage = [];
     var tipColor = "#000000"
     var panAllow = false;
     var otherContinousDrawing = [];
     let painting = false;
     ctx.lineJoin = "round";
+
     //draws the grid on the entire canvas
     drawGrid();
-    //ctx.globalCompositeOperation='destination-over';
 
     // Sends the room ID from the url to the server when joining the first time
     var roomid = window.location.pathname.substr(1);
@@ -50,13 +55,8 @@ window.addEventListener('load', () => {
     //#######################################################
     //------------------FUNCTIONS----------------------------
     //#######################################################
-    
-    //changes canvas width and height 
-    function adjustCanvasDimnesions(){
-        canvas.height = 0.95* window.innerHeight;
-        canvas.width = 0.95* window.innerWidth;
-    }
 
+    // draws the grid on the entire canvas
     function drawGrid(){
         var gridLinesDist = 100;
         ctx.strokeStyle = "#c3c3c3";
@@ -105,33 +105,19 @@ window.addEventListener('load', () => {
         ctx.beginPath();
         drawingStorage.push(continuousDrawing);
         redoStorage = [];
-        // console.log(continuousDrawing);
-        // if (continuousDrawing[0][2]=="#ffffff") {
-        //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-        //     redrawScreen(drawingStorage);
-        //     ctx.globalCompositeOperation='xor';
-        //     drawGrid();
-        //     ctx.globalCompositeOperation='source-over';
-        //     console.log("Redrawn everything");
-        // }
-
-        //console.log("Added to drawingStorage");
-        //console.log(drawingStorage);
-        //so we can do ctx.beginPath() at the other users' end. So that all lines are not joined together. 
+        
+        // tell the server that pen lifted
         socket.emit('penLifted', {
             roomID: roomid
         });
     }
+
     //when user draws on their canvas
     function draw(e){
         if (!painting) return;
         ctx.lineWidth = 7;
         ctx.lineCap = 'round';
         ctx.strokeStyle = tipColor;
-
-       
-        // var xPos = e.clientX -(5/totalScale);  // + window.scrollX
-        // var yPos = e.clientY -(5/totalScale);  // + window.scrollY
 
         var xAdjusted = (e.clientX - totalXtranslate)/totalScale;
         var yAdjusted = (e.clientY - totalYtranslate)/totalScale;
@@ -143,7 +129,7 @@ window.addEventListener('load', () => {
 
         continuousDrawing.push([xAdjusted, yAdjusted, tipColor]);
 
-        //sends the percentages
+        //sends the coordinated of place where something is drawn and also the color
         socket.emit('somethingDrawn', {
             roomID: roomid,
             location: [xAdjusted, yAdjusted, tipColor]
@@ -155,26 +141,22 @@ window.addEventListener('load', () => {
         ctx.lineWidth = 7;
         ctx.lineCap = 'round';
         ctx.strokeStyle = colour;
-        // console.log(colour);
+
         ctx.lineTo(x, y);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(x, y);
         otherContinousDrawing.push([x, y, colour]);
-
-        //console.log("It should have drawn!! "+ x + " "+ y);
     }
 
+    // takes the coordinates of all points and draws it on the screen. Used to redraw the screen.
     function redrawScreen(storage){
-        //console.log("Redrawing");
+
         ctx.lineWidth = 7;
         var storageArrayLength = storage.length;
         for (let i = 0; i < storageArrayLength; i++) {
             var singleDrawingLength = storage[i].length;
-            // if (storage[i][0][2] == "#ffffff") {
-            //     console.log("Aye!! White color while redrawing");
-            //     ctx.globalCompositeOperation='destination-out';
-            // }
+
             for (let j = 0; j < singleDrawingLength; j++) {
                 var point = storage[i][j];
                 //console.log(point);
@@ -184,177 +166,42 @@ window.addEventListener('load', () => {
                 ctx.beginPath();
                 ctx.moveTo(point[0], point[1]);
             }
-            // ctx.globalCompositeOperation='source-over';
             ctx.beginPath();
         }
     }
 
+    // brings the canvas to its original position with no translation
     function resetTranslate(){
         var xReset = (-1)*totalXtranslate/totalScale;
         var yReset = (-1)*totalYtranslate/totalScale;
         ctx.translate(xReset , yReset );
     }
+
+    // zooms in
     function zoomIn(x,y){
         ctx.scale(scaleFactor, scaleFactor);
 
         
         totalScale = totalScale*scaleFactor;
 
-        //console.log("Total Scale: " + totalScale);
-        //console.log("Total X Trans: " + totalXtranslate);
-        //console.log("Total Y Trans: " + totalYtranslate);
-
-        //simplified version of below code
-        // var xtrans = ( totalXtranslate*(scaleFactor-totalScale) + e.clientX*(1-scaleFactor) )/totalScale;
-        // var ytrans = ( totalYtranslate*(scaleFactor-totalScale) + e.clientY*(1-scaleFactor) )/totalScale;
-
-        //doing it slowly
         var cursorX = x;
         var cursorY = y;
-        //console.log("Cursor: ", cursorX, cursorY);
 
         var ptX = (cursorX-totalXtranslate)*scaleFactor;
         var ptY = (cursorY-totalYtranslate)*scaleFactor;
-        //console.log(`( ${cursorX} - ${totalXtranslate} ) x ${scaleFactor} = ${ptX}`);
-        //console.log(`( ${cursorY} - ${totalYtranslate} ) x ${scaleFactor} = ${ptY}`);
-        //console.log("pt: ", ptX, ptY);
 
         resetTranslate();
 
         var xtrans = (-1)*(ptX-cursorX)/totalScale;
         var ytrans = (-1)*(ptY-cursorY)/totalScale;
 
-        //stores the translate value as if there was no scaling (multiplies by the totalScale)
-        // totalXtranslate = totalXtranslate + xtrans*totalScale;
-        // totalYtranslate = totalYtranslate + ytrans*totalScale;
-        //why were you adding the previous totalXtranslate when you always reset it to the origin
-        totalXtranslate = xtrans*totalScale;
-        totalYtranslate = ytrans*totalScale;
-        ctx.translate(xtrans, ytrans);
-        //console.log(xtrans, ytrans);
-        //console.log("   ");
-    }
-
-    // delete these
-    function zoomOutReal(x,y){
-        var recpScaleFactor = 1/scaleFactor;
-
-        //this line below pervents zoom out if the canvas width becomes smaller than the screen width
-        if (canvasWidth*totalScale*recpScaleFactor < screenWidth || canvasHeight*totalScale*recpScaleFactor < screenHeight) {return};
-
-
-        ctx.scale(recpScaleFactor, recpScaleFactor);
-
-        totalScale = totalScale*recpScaleFactor;
-
-        var cursorX = x;
-        var cursorY = y;
-
-        var ptX = (cursorX-totalXtranslate)*recpScaleFactor;
-        var ptY = (cursorY-totalYtranslate)*recpScaleFactor;
-
-        resetTranslate();
-
-        var xtrans = (-1)*(ptX-cursorX)/totalScale;
-        var ytrans = (-1)*(ptY-cursorY)/totalScale;
         totalXtranslate = xtrans*totalScale;
         totalYtranslate = ytrans*totalScale;
         ctx.translate(xtrans, ytrans);
 
-        
-        //brings back the canvas into proper view as zoom out causes it to show background beyond the border
-        var allowedWidth = screenWidth - totalXtranslate;
-        var allowedLength = screenHeight - totalYtranslate;
-        if (allowedWidth > canvasWidth*totalScale) {   // || screenWidth - totalXtranslate < screenWidth 
-            var extra = (screenWidth - totalXtranslate - canvasWidth*totalScale)/totalScale;
-            ctx.translate(extra, 0);
-            totalXtranslate += extra*totalScale;
-            console.log("Prevented from right");
-        }
-        if(totalXtranslate > 0){
-            ctx.translate(-totalXtranslate, 0);
-            totalXtranslate = 0;
-            console.log("Prevented from left");
-        }
-
-        if (allowedLength > canvasHeight*totalScale) {  //  || screenHeight - totalYtranslate < screenHeight
-            var extra = (screenHeight - totalYtranslate - canvasHeight*totalScale)/totalScale;
-            ctx.translate(0, extra);
-            // console.log(extra);
-            totalYtranslate += extra*totalScale;
-            console.log("Prevented from down");
-
-        }
-        if(totalYtranslate > 0){
-            console.log(totalYtranslate);
-            ctx.translate(0, -totalYtranslate);
-            totalYtranslate = 0;
-            console.log("Prevented from up");
-        }
-    }
-    // delete these
-    function zoomOutEdited1(x,y){
-        // console.log(screenWidth, totalXtranslate, totalYtranslate)
-        var recpScaleFactor = 1/scaleFactor;
-
-        //this line below pervents zoom out if the canvas width becomes smaller than the screen width
-        if (canvasWidth*totalScale*recpScaleFactor < screenWidth || canvasHeight*totalScale*recpScaleFactor < screenHeight) {return};
-
-
-        ctx.scale(recpScaleFactor, recpScaleFactor);
-
-        totalScale = totalScale*recpScaleFactor;
-
-        var cursorX = x;
-        var cursorY = y;
-
-        var ptX = (cursorX-totalXtranslate)*recpScaleFactor;
-        var ptY = (cursorY-totalYtranslate)*recpScaleFactor;
-        
-        var xtrans = (-1)*(ptX-cursorX)/totalScale;
-        var ytrans = (-1)*(ptY-cursorY)/totalScale;
-
-        var allowedWidth = screenWidth - xtrans*totalScale;
-        var allowedLength = screenHeight - ytrans*totalScale;
-
-        // if (xtrans*totalScale > 0 || allowedWidth > canvasWidth*totalScale) {
-        //     xtrans = 0;
-        // }else{
-        //     var xReset = (-1)*totalXtranslate/totalScale;
-        //     ctx.translate(xReset , 0);
-        //     totalXtranslate = xtrans*totalScale;   
-        // }
-
-        // if (ytrans*totalScale > 0 || allowedLength > canvasHeight*totalScale) {
-        //     ytrans = 0;
-        // }else{
-        //     var yReset = (-1)*totalYtranslate/totalScale;
-        //     ctx.translate(0, yReset );
-        //     totalYtranslate = ytrans*totalScale;
-        // }
-        var movingOutfromLeft = xtrans*totalScale > 0;
-        var movingOutfromRight = allowedWidth > canvasWidth*totalScale;
-        var movingOutfromUp = ytrans*totalScale > 0;
-        var movingOutfromBottom = allowedLength > canvasHeight*totalScale;
-
-        if (xtrans*totalScale > 0 || allowedWidth > canvasWidth*totalScale || ytrans*totalScale > 0 || allowedLength > canvasHeight*totalScale) {
-            xtrans = 0;
-            ytrans = 0;
-            ctx.scale(scaleFactor, scaleFactor);
-            console.log("Moving out!");
-            if (movingOutfromLeft) {console.log("Moving out from left");}
-            if (movingOutfromRight) {console.log("Moving out from Right");}
-            if (movingOutfromUp) {console.log("Moving out from Up");}
-            if (movingOutfromBottom) {console.log("Moving out from Bottom");}
-        }else{
-            resetTranslate();
-            totalXtranslate = xtrans*totalScale;   
-            totalYtranslate = ytrans*totalScale;
-            ctx.translate(xtrans, ytrans);
-            console.log("allowed moving");
-        }
     }
 
+    // zooms out
     function zoomOut(x,y){
         var recpScaleFactor = 1/scaleFactor;
 
@@ -453,15 +300,20 @@ window.addEventListener('load', () => {
 
     var panPtX;
     var panPtY;
+
+    // when control pressed, pan is allowed
     function allowPan(e){
         panPtX = e.clientX;
         panPtY = e.clientY;
         panAllow = true;
     }
+
+    // when control not pressed, pan not allowed
     function blockPan(){
         panAllow = false;
     }
 
+    // translated the screen according to the movement of the cursor
     function panScreen(e){
         if (!panAllow) return;
         //console.log("Can pan");
@@ -489,6 +341,7 @@ window.addEventListener('load', () => {
         redrawScreen(drawingStorage); 
     }
 
+    // undo
     function undoDrawing(){
         if (!canUndo) {return};
         var drawing = drawingStorage.pop();
@@ -498,6 +351,7 @@ window.addEventListener('load', () => {
         redrawScreen(drawingStorage); 
     }
 
+    // redo
     function redoDrawing(){
         if (!canUndo) {return};
         // console.log(redoStorage);
@@ -506,7 +360,6 @@ window.addEventListener('load', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawGrid();
         redrawScreen(drawingStorage);
-        // console.log("Everything done")
     }
     
     //#######################################################
@@ -518,6 +371,7 @@ window.addEventListener('load', () => {
     canvas.addEventListener("mouseout", finishedPosition);
     canvas.addEventListener("mousemove", draw);
 
+    // to zoom in and out
     document.addEventListener("wheel", function(e){
         var scrollDirection = e.deltaY;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -533,11 +387,10 @@ window.addEventListener('load', () => {
     });
 
     var canUndo = false;
+
+    // listens to ctrl, z, y for zooming, undo, and redo respectively
     document.addEventListener("keydown", function(e){
-        if(e.key === "Escape") {
-            console.log("Escape Pressed");
-            //document.exitFullscreen();
-        }
+
         if (e.key === "Control") {
             canvas.style.cursor = "move";
 
@@ -553,9 +406,7 @@ window.addEventListener('load', () => {
             //console.log("Control pressed");
             canUndo = true;
         }
-        if(e.key === "p") {
-            fixTranslate();
-        }
+
         if(e.key === "z") {
             if (drawingStorage[0]) {
                 undoDrawing();
@@ -566,30 +417,14 @@ window.addEventListener('load', () => {
                 redoDrawing();
             }
         }
-        // remove later
-        if(e.key === "t") {
-            console.log(" ");
-            console.log("TotalX & totalY: "+ totalXtranslate + ", "+ totalYtranslate);
-            console.log("Screen Width: " + screenWidth);
-            console.log("Canv. W: " + canvasWidth*totalScale + ", Canv. H: "+canvasHeight*totalScale);
-            var limitX = screenWidth-totalXtranslate;
-            var limitY = screenHeight-totalYtranslate;
-            console.log("X limit: " + limitX + ", Y limit: " + limitY);
-            console.log("Total Scale: " + totalScale);
-            console.log(" ");
-            //document.exitFullscreen();
-        }
         
     });
 
+    // control lifted
     document.addEventListener("keyup", function(e){
-        if(e.key === "f") {
-            console.log("f Pressed");
-            //canvas.requestFullscreen();
-        }
+
         if (e.key === "Control") {
             canvas.style.cursor = "auto";
-            //console.log("Control lifted");
                         
             //removes events for panning screen
             canvas.removeEventListener("mousedown", allowPan);
@@ -605,17 +440,15 @@ window.addEventListener('load', () => {
         }
     });
 
+    // adding event listeners to all the markers on the left of the screen
     for (let index = 0; index < panelBtns.length; index++) {
         if (panelBtns[index].id == "eraser") {
             panelBtns[index].addEventListener("click", function(e){
                 tipColor = "#ffffff";
-
             });
 
         }else{
             panelBtns[index].addEventListener("click", function(e){
-                //console.log("clickingg");
-                //console.log(this.id);
                 tipColor = "#" + this.id;
             });
         }
@@ -628,36 +461,29 @@ window.addEventListener('load', () => {
 
     //receives the coordinates of where some other user has drawn
     socket.on('somebodyDrew', (data)=>{
-        //console.log('Data at client: ' + data.location);
-        //drawOnOtherScreens(data.location[0], data.location[1]);
 
-        //converts the percentages to pixels using the screen width and height and then fires the function which draws.
-        // drawOnOtherScreens(data.location[0]*window.innerWidth, data.location[1]*window.innerHeight);
+        // uses the coordinates and color value received to draw
         drawOnOtherScreens(data.location[0], data.location[1], data.location[2]);
     });
 
     //tells that the user who was drawing has lifted their pen
     socket.on('liftThePen', (data)=>{
-        //console.log('Somebody lifted the pen!');
         ctx.beginPath();  //resets the path so that all lines don't join together
         drawingStorage.push(otherContinousDrawing);
         otherContinousDrawing = [];
     });
 
+    // when a new use joins a room, he is sent the current condition of the board
     socket.on('sendCurrentBoard', (data)=>{
-        console.log("sending the current board bro!")
         socket.emit('currentBoardSent', {
             roomID: roomid,
             board: drawingStorage
         });
     });
+
+    // when new user joins a room, he receives the current condition of the board
     socket.on('initialBoard', (data)=>{
-        console.log("Got thze dataz..");
-        console.log(data);
         redrawScreen(data.board);
         drawingStorage = data.board;
     });
 });
-
-//fixes canvas width and height when window resized
-// window.addEventListener('resize', adjustCanvasDimnesions);

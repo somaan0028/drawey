@@ -1,3 +1,4 @@
+// this controls the navbar and the hamburger functionality
 window.onload=function(){
   navFade();
 }
